@@ -4,7 +4,7 @@
     @filter="setFilter"
   />
 
-  <div class="view-content" ref="contentEl" @scroll.passive="onScroll">
+  <div class="view-content" ref="contentEl">
     <!-- Loading initial -->
     <SkeletonGrid v-if="assets.loading" :grid-size="ui.gridSize" />
 
@@ -81,19 +81,16 @@
         </div>
       </div>
 
-      <!-- Load more / bottom sentinel -->
-      <div class="load-more-row">
-        <div v-if="assets.loadingMore" class="load-more-spin">
-          <div class="spinner-sm"></div>
-          <span>Carregando mais…</span>
-        </div>
-        <div v-else-if="assets.hasMore" class="load-more-hint">
-          <span>{{ assets.meta.total_matches - assets.items.length }} arquivo(s) restantes</span>
-          <button class="load-more-btn" @click="assets.loadMore()">Carregar mais</button>
-        </div>
-        <div v-else class="load-more-end">
-          {{ assets.meta.total_matches }} arquivo{{ assets.meta.total_matches !== 1 ? 's' : '' }} no total
-        </div>
+      <Pagination
+        v-if="assets.meta.total_pages > 1"
+        :page="assets.meta.page"
+        :total-pages="assets.meta.total_pages"
+        :total-items="assets.meta.total_matches"
+        :loading="assets.loading"
+        @change="changePage"
+      />
+      <div v-else class="pg-single">
+        {{ assets.meta.total_matches.toLocaleString('pt-BR') }} arquivo{{ assets.meta.total_matches !== 1 ? 's' : '' }} no total
       </div>
     </template>
   </div>
@@ -145,6 +142,7 @@ import FloatingActionBar from '@/components/gallery/FloatingActionBar.vue'
 import AddToCollectionModal from '@/components/gallery/AddToCollectionModal.vue'
 import LinkToCampaignModal from '@/components/gallery/LinkToCampaignModal.vue'
 import SkeletonGrid from '@/components/ui/SkeletonGrid.vue'
+import Pagination from '@/components/ui/Pagination.vue'
 import { ICONS } from '@/lib/icons'
 
 defineProps({ viewMode: { type: String, default: 'grid' } })
@@ -225,13 +223,11 @@ function bulkTrash() {
   assets.clearSelection()
 }
 
-// Infinite scroll on bottom 200px
-function onScroll() {
-  const el = contentEl.value
-  if (!el || assets.loadingMore || !assets.hasMore) return
-  if (el.scrollHeight - el.scrollTop - el.clientHeight < 200) {
-    assets.loadMore()
-  }
+async function changePage(n) {
+  await assets.goToPage(n)
+  assets.clearSelection()
+  // sem isso o usuário cai no meio da página nova, já rolado
+  if (contentEl.value) contentEl.value.scrollTop = 0
 }
 
 // Keyboard nav
@@ -344,21 +340,9 @@ onUnmounted(() => {
 .fc-act-sm:hover { border-color: var(--accent); color: var(--accent); }
 .fc-act-sm svg { width: 13px; height: 13px; }
 
-/* Load more */
-.load-more-row {
+/* Rodapé quando tudo cabe numa página só */
+.pg-single {
   display: flex; justify-content: center; padding: 24px 0 8px;
+  font-size: 12px; color: var(--faint);
 }
-.load-more-spin { display: flex; align-items: center; gap: 8px; color: var(--faint); font-size: 13px; }
-.spinner-sm {
-  width: 16px; height: 16px; border: 2px solid var(--border);
-  border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite;
-}
-.load-more-hint { display: flex; align-items: center; gap: 12px; color: var(--faint); font-size: 12px; }
-.load-more-btn {
-  background: none; border: 1.5px solid var(--border); border-radius: 999px;
-  padding: 5px 14px; font-size: 12px; font-weight: 600; color: var(--muted);
-  cursor: pointer; font-family: inherit; transition: all .12s;
-}
-.load-more-btn:hover { border-color: var(--accent); color: var(--accent); }
-.load-more-end { font-size: 12px; color: var(--faint); }
 </style>

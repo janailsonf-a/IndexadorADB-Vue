@@ -161,6 +161,18 @@ export const useAssetsStore = defineStore('assets', () => {
     await fetchAssets({ query: searchQuery.value, page: meta.value.page + 1, reset: false })
   }
 
+  /**
+   * Troca de página substituindo os itens (não acumula como loadMore).
+   * O acervo tem milhões de arquivos — acumular página após página no DOM
+   * travava o navegador, por isso a galeria pagina em vez de rolar infinito.
+   */
+  async function goToPage(n) {
+    const total = meta.value.total_pages || 1
+    const target = Math.min(Math.max(1, Number(n) || 1), total)
+    if (target === meta.value.page) return
+    await fetchAssets({ query: searchQuery.value, page: target, reset: true })
+  }
+
   function toggleStar(id) {
     const sid = String(id)
     const s = new Set(starredIds.value)
@@ -259,7 +271,7 @@ export const useAssetsStore = defineStore('assets', () => {
     items, loading, loadingMore, error, selected, currentFilter, searchQuery,
     campaignFilter, dateFromFilter, dateToFilter,
     meta, starredIds, campaignMeta, collections, trash, hiddenIds, filtered, visibleItems, campaignsList, selectedList, hasMore, lightboxId,
-    fetchAssets, loadMore, toggleStar, toggleSelect, clearSelection, selectAll,
+    fetchAssets, loadMore, goToPage, toggleStar, toggleSelect, clearSelection, selectAll,
     openLightbox, closeLightbox, upsertCampaignMeta, applyCampaignDateFilter,
     createCollection, deleteCollection, addFilesToCollection, removeFileFromCollection,
     moveToTrash, restoreFromTrash, permanentlyRemove, emptyTrash,
