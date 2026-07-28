@@ -50,7 +50,10 @@ export function mapItem(r, starredSet) {
     is_official: !!r.is_official,
     preview_link: r.preview_link || `/files/${encodeURIComponent(r.rel_path)}`,
     download_link: r.download_link || `/download?path=${encodeURIComponent(r.rel_path)}`,
-    thumbnail: type === 'img' ? (r.preview_link || `/files/${encodeURIComponent(r.rel_path)}`) : null,
+    // imagem se exibe direto; vídeo usa o JPEG do 1º quadro gerado no backend
+    thumbnail: type === 'img'
+      ? (r.preview_link || `/files/${encodeURIComponent(r.rel_path)}`)
+      : (type === 'vid' ? (r.thumbnail_link || null) : null),
     starred: starredSet.has(id),
     contentHash: r.content_hash || null,
   }
