@@ -9,7 +9,9 @@
 
 ---
 
-## Estado atual (última atualização: 2026-07-17, fim de sessão)
+## Estado atual (última atualização: 2026-07-28, fim de sessão)
+
+**Deploy em produção feito nesta sessão.** Ver seção "Deploy e Produção" logo abaixo para o estado atual de infraestrutura — é a parte mais importante pra quem continuar a partir daqui.
 
 **Todas as 16 views funcionais** — nenhuma é mais mock puro (`AuditView` removida nesta sessão, ver abaixo). Alta, média e **baixa prioridade/polish: 100% concluídas.** Backlog anterior zerado nesta sessão:
 - [x] `SearchView.vue` refatorado — `mapItem`/`EXT_TO_TYPE`/`formatSize`/`normalizeDate` agora exportados de `assets.js` e reaproveitados, dedupe completo. Corrigiu de quebra o bug de `starred: false` sempre falso na busca.
@@ -23,7 +25,7 @@
 Sessão anterior corrigiu **2 bugs reais no backend** (`/home/janailsonf-a/indexador`, fora do repo Noxis2, autorizados explicitamente — ver seção própria abaixo): permissão de `editor` bloqueada indevidamente em `PUT /api/files/{id}/metadata`, e um bug de concorrência real (`sqlite3.ProgrammingError` sob requests paralelos).
 
 **O que ainda falta** (baixo risco, nenhum bloqueante):
-- Repositório ainda sem git (`git init` nunca rodado neste diretório) — decisão explícita do usuário, não inicializar sem pedido novo
+- Nenhum item bloqueante identificado no momento — app em produção, ver seção "Deploy e Produção".
 
 **Feature nova nesta sessão (backend dev, autorizado explicitamente):** detecção de duplicatas por hash de conteúdo real (SHA-256), ver seção "Funcionalidades adicionadas no Backend" abaixo.
 
@@ -44,6 +46,45 @@ Sessão anterior corrigiu **2 bugs reais no backend** (`/home/janailsonf-a/index
 - **Verificado ao vivo:** criar usuário com Editor → 201 (`role:"user"` na resposta); criar com Admin → 201 (`role:"admin"`); filtro por Editor exclui admin e vice-versa; editar papel Editor→Admin → 200; usuários de teste limpos depois.
 
 **Para rodar:** ver seção "Ambiente de Desenvolvimento" logo abaixo. Login dev: `jfalmeida@amigosdobem.org` / `noxis2025`.
+
+---
+
+## Deploy e Produção (2026-07-28)
+
+### Repositórios (ambos com git de verdade agora, nada mais é "sem git")
+| Repo | GitHub | Branch em produção |
+|---|---|---|
+| Frontend (este projeto, mesclado do antigo `Noxis2`) | `github.com/janailsonf-a/Noxis-Vue` | `feature/noxis2-merge` → PR aberto e **mergeado em `main`** |
+| Backend (`/home/janailsonf-a/indexador`, dev; código real roda em container separado) | `github.com/janailsonf-a/Noxis-Python` | `feat/deploy-ajustes` |
+
+O merge do antigo `Noxis2` pra dentro deste repo (`Noxis`) já está descrito nas seções acima como trabalho de sessão; ficou tudo preservado em `_legacy-noxis-pre-merge/` o que colidia por caminho.
+
+### ⚠️ O backend tem que rodar em Docker, não bare-metal
+Confirmado nesta sessão: a instância de produção real é o container Docker `indexador-api` (porta host `9102` → porta interna do container `9100`), junto com `indexador-worker` (indexer/watcher). **Não existe processo bare-metal de produção** — só o dev local (`localhost:9103`, ambiente descrito na seção abaixo) roda fora de container, e é só pra desenvolvimento/teste, nunca pra servir usuário real. Se for reconfigurar/reiniciar o backend em produção, é `docker` (`docker ps`, `docker restart indexador-api` etc.), não `uvicorn` direto.
+
+### Servidor de produção (`192.168.0.162`)
+| Item | Valor |
+|---|---|
+| Frontend (build estático, nginx) | `http://192.168.0.162:9101` |
+| Backend (container Docker) | `127.0.0.1:9102` (só acessível via proxy do nginx, não exposto direto pro navegador) |
+| Diretório do frontend no servidor | `/opt/projetos/Noxis-Vue` (clone do repo, branch `main`) |
+| Nginx config | `/etc/nginx/sites-available/noxis_vue` |
+
+**Processo de deploy do frontend**, replicável pra próxima atualização:
+```bash
+cd /opt/projetos/Noxis-Vue
+git pull origin main
+rm -rf node_modules package-lock.json   # evita node_modules desatualizado/incompatível
+npm install
+npm run build
+sudo systemctl reload nginx             # só se o nginx config mudou; build sozinho não precisa
+```
+
+**Bug de infra achado e corrigido nesta sessão:** o nginx só tinha `location / { try_files ... }` servindo os arquivos estáticos — nenhuma regra de proxy pra `/api`, `/files`, `/download`, `/preview`. Qualquer método diferente de GET/HEAD (ex: `POST /api/auth/login`) caía nesse location estático e retornava **405 Not Allowed** direto do nginx, sem nunca chegar no backend. Corrigido adicionando 4 blocos `location` com `proxy_pass http://127.0.0.1:9102` (a porta publicada do container `indexador-api`) antes do `location /` existente. Login testado funcionando depois do fix.
+
+### Comunicação pro time
+- `ACESSOS.md` (raiz do repo) — o que cada papel (Editor/Admin) acessa.
+- Apresentação de novidades: artifact HTML (self-contained, 8 slides) e uma versão no Canva (brand kit "Amigos do Bem" aplicado, formato direto "antes / agora / pra que serve" por funcionalidade) — nenhum dos dois faz parte do código do projeto, são só material de comunicação, não precisam de manutenção junto com o app.
 
 ---
 

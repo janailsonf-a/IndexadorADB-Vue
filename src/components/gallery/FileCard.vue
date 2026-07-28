@@ -10,8 +10,20 @@
     <!-- Thumbnail area -->
     <div class="fc-thumb-wrap">
       <div class="fc-bg" :style="{ background: ft.bg }">
-        <img v-if="file.thumbnail" :src="file.thumbnail" class="fc-img" alt="" loading="lazy">
+        <img
+          v-if="file.thumbnail && !thumbFailed"
+          :src="file.thumbnail"
+          class="fc-img"
+          alt=""
+          loading="lazy"
+          @error="thumbFailed = true"
+        >
         <span v-else class="fc-ico" v-html="ft.icon"></span>
+
+        <!-- Play sobre a miniatura de vídeo, pra deixar claro que é reproduzível -->
+        <span v-if="isVideo && file.thumbnail && !thumbFailed" class="fc-play" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </span>
       </div>
 
       <!-- Type badge (always visible) -->
@@ -54,7 +66,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useFileType, getFileType } from '@/composables/useFileType'
 
 const props = defineProps({
@@ -65,6 +77,12 @@ const props = defineProps({
 const emit = defineEmits(['click', 'select', 'preview', 'download', 'star', 'trash'])
 
 const ft = computed(() => useFileType(props.file.type || getFileType(props.file.name)))
+const isVideo = computed(() => (props.file.type || getFileType(props.file.name)) === 'vid')
+
+// se a miniatura não carregar (vídeo corrompido, ffmpeg fora do ar), cai no
+// ícone genérico em vez de mostrar imagem quebrada
+const thumbFailed = ref(false)
+watch(() => props.file.thumbnail, () => { thumbFailed.value = false })
 
 const typeBadge = computed(() => {
   const ext = props.file.name?.split('.').pop()?.toUpperCase() || props.file.type?.toUpperCase() || '—'
@@ -103,6 +121,22 @@ function handleClick() { emit('click', props.file) }
 .fc-img { width: 100%; height: 100%; object-fit: cover; }
 .fc-ico { width: 38%; height: 38%; color: rgba(255,255,255,.85); filter: drop-shadow(0 2px 8px rgba(0,0,0,.4)); }
 .fc-ico :deep(svg) { width: 100%; height: 100%; }
+
+.fc-play {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+  transition: background .15s;
+}
+.fc-play svg { width: 22px; height: 22px; margin-left: 2px; }
+.fc:hover .fc-play { background: rgba(0,0,0,.72); }
 
 /* Badges */
 .fc-type-badge {
