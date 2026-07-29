@@ -34,8 +34,17 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
           <div class="lbox-file">
-            <img v-if="file.thumbnail || file.type === 'img'" :src="file.thumbnail || '/placeholder.jpg'" class="lbox-img" alt="">
-            <video v-else-if="file.type === 'vid'" :src="file.preview_link" controls class="lbox-video"></video>
+            <!-- tipo antes de thumbnail: vídeo também tem thumbnail agora, e aqui
+                 tem que abrir o player, não o quadro estático -->
+            <video
+              v-if="file.type === 'vid'"
+              :src="file.preview_link"
+              :poster="file.thumbnail || undefined"
+              controls
+              preload="metadata"
+              class="lbox-video"
+            ></video>
+            <img v-else-if="file.type === 'img' || file.thumbnail" :src="file.thumbnail || '/placeholder.jpg'" class="lbox-img" alt="">
             <iframe v-else-if="file.type === 'pdf'" :src="file.preview_link" class="lbox-pdf"></iframe>
             <div v-else-if="file.type === 'aud'" class="lbox-icon-view" :style="{ background: ft.bg }">
               <span class="lbox-type-ico" v-html="ft.icon"></span>
