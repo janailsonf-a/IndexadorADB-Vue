@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 const DEFAULT_CFG = {
-  systemName: 'Noxis 2.0',
+  systemName: 'Indexador ADB',
   orgName: 'Amigos do Bem',
   logoUrl: '',
   maintenance: false,

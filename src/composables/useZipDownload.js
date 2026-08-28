@@ -44,7 +44,7 @@ export function useZipDownload() {
     const url = URL.createObjectURL(content)
     const a = document.createElement('a')
     a.href = url
-    a.download = `noxis-download-${used.size}-arquivos.zip`
+    a.download = `indexador-adb-${used.size}-arquivos.zip`
     a.click()
     URL.revokeObjectURL(url)
 

@@ -625,7 +625,7 @@ watch(query, () => {
           <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <div class="mb-2 flex items-center gap-2 text-sm text-[var(--app-text-subtle)]">
-                <span>Noxis</span>
+                <span>Indexador ADB</span>
                 <ChevronRight class="h-4 w-4" />
                 <span class="font-medium text-[var(--app-text-soft)]">Arquivos</span>
               </div>
@@ -1494,7 +1494,7 @@ watch(query, () => {
                           v-model="metadataForm.tagsText"
                           type="text"
                           class="w-full rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-3)] px-4 py-3 text-sm text-[var(--app-text)] outline-none transition focus:border-[color:color-mix(in_srgb,var(--app-primary)_40%,transparent)]"
-                          placeholder="Ex: noxis, campanha, banner"
+                          placeholder="Ex: relatorio, campanha, banner"
                         />
                         <p class="mt-2 text-xs text-[var(--app-text-subtle)]">
                           Separe as tags por vírgula.
