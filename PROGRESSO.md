@@ -69,6 +69,17 @@ Confirmado nesta sessão: a instância de produção real é o container Docker 
 | Backend (container Docker) | `127.0.0.1:9102` (só acessível via proxy do nginx, não exposto direto pro navegador) |
 | Diretório do frontend no servidor | `/opt/projetos/Noxis-Vue` (clone do repo, branch `main`) |
 | Nginx config | `/etc/nginx/sites-available/noxis_vue` |
+| Diretório do backend no servidor | `/opt/projetos/IndexadorADB-Python` |
+
+**⚠️ `COMPOSE_PROJECT_NAME` no servidor:** as pastas foram renomeadas de
+`Noxis-Vue`/`indexador` para `IndexadorADB-*` em 28/08/2026. O `docker compose`
+deriva o nome do projeto do nome da pasta, então depois do rename ele parou de
+enxergar os containers `indexador-api`/`indexador-worker`. A correção foi
+acrescentar `COMPOSE_PROJECT_NAME=indexador` ao `.env` de
+`/opt/projetos/IndexadorADB-Python`. Esse `.env` é gitignored — se ele for
+perdido ou o repo for re-clonado, a linha precisa ser recriada, senão um
+`docker compose down`/`up` não encontra os containers certos e colide no nome
+`indexador-api`.
 
 **Processo de deploy do frontend**, replicável pra próxima atualização:
 ```bash
