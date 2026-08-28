@@ -64,14 +64,35 @@
         </div>
 
         <!-- Bottom panel -->
-        <div class="lbox-bot" :class="{ 'lbox-bot-edit': editing }">
+        <div class="lbox-bot" :class="{ 'lbox-bot-edit': editing, 'lbox-bot-audit': showAudit }">
           <template v-if="!editing">
             <div class="lbox-sec">
               <h4>Detalhes</h4>
-              <div class="lbox-row"><span>Tamanho</span><span>{{ file.size }}</span></div>
+              <div class="lbox-row"><span>Tamanho</span><span>{{ audit?.indice?.tamanho_humano || file.size }}</span></div>
               <div class="lbox-row"><span>Tipo</span><span>{{ ft.label }}</span></div>
+              <div class="lbox-row" v-if="audit?.tecnico?.dimensoes">
+                <span>Dimensões</span><span>{{ audit.tecnico.dimensoes }}</span>
+              </div>
+              <div class="lbox-row" v-if="audit?.tecnico?.proporcao">
+                <span>Proporção</span><span>{{ audit.tecnico.proporcao }}<template v-if="audit.tecnico.megapixels"> · {{ audit.tecnico.megapixels }} MP</template></span>
+              </div>
+              <div class="lbox-row" v-if="audit?.tecnico?.duracao">
+                <span>Duração</span><span>{{ audit.tecnico.duracao }}<template v-if="audit.tecnico.fps"> · {{ audit.tecnico.fps }} fps</template></span>
+              </div>
               <div class="lbox-row"><span>Data</span><span>{{ fmtDate(file.date) }}</span></div>
+              <div class="lbox-row" v-if="audit?.origem">
+                <span>Origem</span>
+                <span :title="audit.origem.detalhe">
+                  {{ audit.origem.rotulo }}
+                  <span v-if="audit.origem.somente_leitura" class="lbox-ro">somente leitura</span>
+                </span>
+              </div>
               <div class="lbox-row" v-if="file.rel_path"><span>Caminho</span><span class="lbox-path">{{ file.rel_path }}</span></div>
+
+              <button class="lbox-audit-toggle" @click="showAudit = !showAudit">
+                {{ showAudit ? 'Ocultar auditoria técnica' : 'Ver auditoria técnica' }}
+              </button>
+
             </div>
             <div class="lbox-sec">
               <h4>Campanha &amp; Info</h4>
@@ -89,6 +110,56 @@
                 <span v-for="t in (metaLoaded?.tags || file.tags || [])" :key="t" class="tag-p">{{ t }}</span>
                 <span v-if="!(metaLoaded?.tags?.length || file.tags?.length)" style="color:rgba(255,255,255,.3);font-size:12px">Sem tags</span>
               </div>
+            </div>
+
+            <!-- Auditoria ocupa a largura toda: caminho absoluto nao cabe numa coluna de 1/3. -->
+            <div v-if="showAudit" class="lbox-audit">
+              <div v-if="auditLoading" class="lbox-audit-load">Lendo o arquivo…</div>
+              <template v-else-if="audit">
+                <div class="lbox-audit-cols">
+                  <div>
+                    <div class="lbox-audit-grp">Conteúdo</div>
+                    <div class="lbox-row" v-if="audit.mime"><span>MIME</span><span>{{ audit.mime }}</span></div>
+                    <div class="lbox-row" v-if="audit.tecnico.formato"><span>Formato</span><span>{{ audit.tecnico.formato }}</span></div>
+                    <div class="lbox-row" v-if="audit.tecnico.codec_video"><span>{{ audit.mime?.startsWith('image/') ? 'Codec' : 'Codec vídeo' }}</span><span>{{ audit.tecnico.codec_video }}</span></div>
+                    <div class="lbox-row" v-if="audit.tecnico.codec_audio"><span>Codec áudio</span><span>{{ audit.tecnico.codec_audio }}<template v-if="audit.tecnico.canais"> · {{ audit.tecnico.canais }} canais</template></span></div>
+                    <div class="lbox-row" v-if="audit.tecnico.taxa_amostragem"><span>Amostragem</span><span>{{ audit.tecnico.taxa_amostragem }}</span></div>
+                    <div class="lbox-row" v-if="audit.tecnico.bitrate"><span>Bitrate</span><span>{{ audit.tecnico.bitrate }}</span></div>
+                  </div>
+                  <div>
+                    <div class="lbox-audit-grp">Armazenamento</div>
+                    <div class="lbox-row"><span>Servidor</span><span class="lbox-path lbox-wrap">{{ audit.origem.detalhe }}</span></div>
+                    <div class="lbox-row"><span>Caminho absoluto</span><span class="lbox-path lbox-wrap">{{ audit.indice.caminho_absoluto }}</span></div>
+                    <div class="lbox-row"><span>Bytes exatos</span><span>{{ audit.indice.tamanho_bytes?.toLocaleString('pt-BR') }}</span></div>
+                    <div class="lbox-row" v-if="audit.disco.existe">
+                      <span>Permissões</span><span>{{ audit.disco.permissoes }} · inode {{ audit.disco.inode }}</span>
+                    </div>
+                    <div class="lbox-row" v-if="audit.disco.modificado_em">
+                      <span>Modificado (disco)</span><span>{{ fmtDateTime(audit.disco.modificado_em) }}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="lbox-audit-grp">Índice</div>
+                    <div class="lbox-row"><span>ID no Noxis</span><span>{{ audit.indice.id }}</span></div>
+                    <div class="lbox-row"><span>Indexado como</span><span>{{ fmtDateTime(audit.indice.criado_em) }}</span></div>
+                    <div class="lbox-row"><span>Caminho no acervo</span><span class="lbox-path lbox-wrap">{{ audit.indice.caminho_relativo }}</span></div>
+                    <div class="lbox-row">
+                      <span>Hash do conteúdo</span>
+                      <span class="lbox-path lbox-wrap">{{ audit.indice.hash_conteudo || audit.indice.hash_observacao || '—' }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- divergencia entre indice e disco = indice desatualizado -->
+                <div v-if="!audit.disco.existe" class="lbox-audit-warn">
+                  Arquivo não encontrado no disco{{ audit.disco.erro ? ` (${audit.disco.erro})` : '' }} — índice desatualizado.
+                </div>
+                <div v-else-if="audit.disco.difere_do_indice" class="lbox-audit-warn">
+                  Tamanho em disco ({{ audit.disco.tamanho_humano }}) difere do índice
+                  ({{ audit.indice.tamanho_humano }}) — o arquivo mudou desde a última indexação.
+                </div>
+              </template>
+              <div v-else class="lbox-audit-warn">Não foi possível ler os dados técnicos.</div>
             </div>
           </template>
 
@@ -163,12 +234,22 @@ const linkCopied = ref(false)
 const editing = ref(false)
 const saving = ref(false)
 const metaLoaded = ref(null)
+const audit = ref(null)
+const auditLoading = ref(false)
+const showAudit = ref(false)
 const form = ref({ title: '', campaign: '', description: '', tags: [], is_official: false })
 const tagInput = ref('')
 const tagSuggestions = ref([])
 const allTags = ref([])
 
 const ft = computed(() => props.file ? useFileType(props.file.type || getFileType(props.file.name)) : {})
+
+function fmtDateTime(d) {
+  if (!d) return '—'
+  const dt = new Date(d)
+  if (isNaN(dt.getTime())) return d
+  return dt.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })
+}
 
 function fmtDate(d) {
   if (!d) return ''
@@ -196,6 +277,20 @@ async function loadMeta(fileId) {
     const { data } = await api.get(`/api/files/${fileId}/metadata`)
     metaLoaded.value = data
   } catch { /* non-critical */ }
+}
+
+/**
+ * Dossiê técnico: dimensões, codec, origem, permissões. O backend roda ffprobe
+ * pra montar isso, então é uma chamada separada — não atrasa a abertura do
+ * visualizador, e as dimensões aparecem assim que chegam.
+ */
+async function loadAudit(fileId) {
+  audit.value = null
+  auditLoading.value = true
+  try {
+    const { data } = await api.get(`/api/files/${fileId}/audit`)
+    audit.value = data
+  } catch { audit.value = null } finally { auditLoading.value = false }
 }
 
 async function loadTagSuggestions() {
@@ -252,7 +347,7 @@ function pickSuggestion(s) {
 }
 
 watch(() => props.file, (f) => {
-  if (f) { lboxEl.value?.focus(); editing.value = false; loadMeta(f.id) }
+  if (f) { lboxEl.value?.focus(); editing.value = false; showAudit.value = false; loadMeta(f.id); loadAudit(f.id) }
 })
 </script>
 
@@ -313,10 +408,41 @@ watch(() => props.file, (f) => {
   gap: 24px; flex-shrink: 0; max-height: 220px; overflow-y: auto;
 }
 .lbox-bot-edit { grid-template-columns: 1fr; max-height: 280px; }
+/* auditoria aberta e alta; sem isso ela fica espremida na faixa de 220px */
+.lbox-bot-audit { max-height: 46vh; }
 .lbox-sec h4 { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #55556a; margin-bottom: 10px; }
 .lbox-row { display: flex; justify-content: space-between; align-items: flex-start; font-size: 12px; margin-bottom: 5px; color: #eeeef5; gap: 8px; }
 .lbox-row span:first-child { color: #8888a8; flex-shrink: 0; }
+.lbox-ro {
+  display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px;
+  background: rgba(255,255,255,.12); color: rgba(255,255,255,.75); font-size: 10px; font-weight: 600;
+}
+.lbox-audit-toggle {
+  margin-top: 10px; background: none; border: 1px solid rgba(255,255,255,.2); border-radius: 7px;
+  color: rgba(255,255,255,.75); font-size: 11.5px; font-family: inherit; padding: 4px 10px; cursor: pointer;
+  transition: all .12s;
+}
+.lbox-audit-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.lbox-audit {
+  grid-column: 1 / -1; margin-top: 4px;
+  border-top: 1px solid rgba(255,255,255,.12); padding-top: 10px;
+}
+.lbox-audit-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; align-items: start; }
+
+.lbox-audit-grp {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+  color: rgba(255,255,255,.4); margin: 10px 0 4px;
+}
+.lbox-audit-cols > div > .lbox-audit-grp:first-child { margin-top: 0; }
+.lbox-audit-load { font-size: 12px; color: rgba(255,255,255,.5); padding: 6px 0; }
+.lbox-audit-warn {
+  margin-top: 10px; padding: 7px 9px; border-radius: 7px;
+  background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3);
+  color: #fbbf24; font-size: 11.5px; line-height: 1.45;
+}
 .lbox-path { font-family: monospace; font-size: 11px; color: #8888a8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; }
+/* caminho e hash tem que aparecer inteiros — e o motivo da auditoria existir */
+.lbox-path.lbox-wrap { white-space: normal; overflow: visible; overflow-wrap: anywhere; max-width: 100%; text-align: right; }
 .tag-list { display: flex; flex-wrap: wrap; gap: 5px; }
 .tag-p { padding: 3px 9px; border-radius: 999px; font-size: 11px; background: rgba(255,107,0,.15); color: var(--accent); border: 1px solid rgba(255,107,0,.25); display: inline-flex; align-items: center; gap: 5px; }
 .tag-rm { background: none; border: none; color: inherit; cursor: pointer; font-size: 13px; line-height: 1; padding: 0; opacity: .7; }
