@@ -110,7 +110,7 @@ function terminalOutput(activity) {
   const file = activity?.filename || activity?.rel_path || '--'
 
   return [
-    '$ noxis activity',
+    '$ indexador activity',
     `> arquivo: ${file}`,
     `> ação: ${action}`,
     '> status: concluído',
@@ -204,7 +204,7 @@ onMounted(() => {
     <div class="grid gap-6">
       <div>
         <div class="mb-2 flex items-center gap-2 text-sm text-[var(--app-text-subtle)]">
-          <span>Noxis</span>
+          <span>Indexador ADB</span>
           <span>/</span>
           <span class="font-medium text-[var(--app-text-soft)]">Status</span>
         </div>
@@ -359,7 +359,7 @@ onMounted(() => {
 
           <div class="overflow-hidden rounded-[20px] border border-[var(--app-border)] bg-[var(--app-terminal)]">
             <div class="border-b border-[var(--app-border)] px-4 py-3 text-xs uppercase tracking-[0.18em] text-[var(--app-text-subtle)]">
-              noxis@activity:~$
+              indexador@activity:~$
             </div>
 
             <div v-if="loading" class="px-4 py-8 font-mono text-sm text-[var(--app-text-subtle)]">
@@ -401,7 +401,7 @@ onMounted(() => {
           <div class="mt-4 rounded-[20px] border border-[var(--app-border)] bg-[var(--app-terminal)] px-4 py-4 font-mono text-sm text-[var(--app-text-soft)]">
             <div class="mb-2 flex items-center gap-2 text-[var(--app-text-subtle)]">
               <Database class="h-4 w-4" />
-              noxis status
+              indexador status
             </div>
 
             <div class="space-y-1">

@@ -142,14 +142,14 @@ function logout() {
           >
             <img
               :src="logoSrc"
-              alt="Noxis"
+              alt="Indexador ADB"
               class="h-full w-full object-contain"
             />
           </div>
 
           <div class="min-w-0">
             <div class="text-[20px] font-semibold tracking-[-0.03em] text-[var(--app-text)]">
-              Noxis
+              Indexador ADB
             </div>
             <div class="mt-1 text-sm text-[var(--app-text-muted)]">
               Workspace

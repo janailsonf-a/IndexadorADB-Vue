@@ -140,7 +140,7 @@
                   </div>
                   <div>
                     <div class="lbox-audit-grp">Índice</div>
-                    <div class="lbox-row"><span>ID no Noxis</span><span>{{ audit.indice.id }}</span></div>
+                    <div class="lbox-row"><span>ID no Indexador</span><span>{{ audit.indice.id }}</span></div>
                     <div class="lbox-row"><span>Indexado como</span><span>{{ fmtDateTime(audit.indice.criado_em) }}</span></div>
                     <div class="lbox-row"><span>Caminho no acervo</span><span class="lbox-path lbox-wrap">{{ audit.indice.caminho_relativo }}</span></div>
                     <div class="lbox-row">

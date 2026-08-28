@@ -2,7 +2,7 @@
   <div class="login-wrap">
     <div class="login-card">
       <img src="/logo.webp" alt="Amigos do Bem" class="login-logo" @error="logoFallback" ref="logoEl">
-      <h1>Noxis</h1>
+      <h1>Indexador ADB</h1>
 
       <form @submit.prevent="handleLogin" class="login-form">
         <div class="field mb-4">

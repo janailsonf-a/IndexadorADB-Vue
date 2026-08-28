@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="sb-head">
       <img src="/logo.webp" alt="ADB" class="sb-logo" @error="e => e.target.style.display='none'">
-      <span class="sb-word">Noxis</span>
+      <span class="sb-word">Indexador ADB</span>
       <button class="sb-tog" @click="ui.toggleSidebar()" title="Colapsar sidebar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
