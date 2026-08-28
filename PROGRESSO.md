@@ -1,4 +1,4 @@
-# Noxis 2.0 — Progresso de Desenvolvimento
+# Indexador ADB — Progresso de Desenvolvimento
 
 > **Projeto:** DAM (Digital Asset Manager) para Amigos do Bem  
 > **Stack:** Vue 3 + Vite 8 + Pinia + Vue Router 4 (JavaScript, não TypeScript)  
@@ -54,8 +54,8 @@ Sessão anterior corrigiu **2 bugs reais no backend** (`/home/janailsonf-a/index
 ### Repositórios (ambos com git de verdade agora, nada mais é "sem git")
 | Repo | GitHub | Branch em produção |
 |---|---|---|
-| Frontend (este projeto, mesclado do antigo `Noxis2`) | `github.com/janailsonf-a/Noxis-Vue` | `feature/noxis2-merge` → PR aberto e **mergeado em `main`** |
-| Backend (`/home/janailsonf-a/indexador`, dev; código real roda em container separado) | `github.com/janailsonf-a/Noxis-Python` | `feat/deploy-ajustes` |
+| Frontend (este projeto, mesclado do antigo `Noxis2`) | `github.com/janailsonf-a/IndexadorADB-Vue` | `feature/noxis2-merge` → PR aberto e **mergeado em `main`** |
+| Backend (`/home/janailsonf-a/indexador`, dev; código real roda em container separado) | `github.com/janailsonf-a/IndexadorADB-Python` | `feat/deploy-ajustes` |
 
 O merge do antigo `Noxis2` pra dentro deste repo (`Noxis`) já está descrito nas seções acima como trabalho de sessão; ficou tudo preservado em `_legacy-noxis-pre-merge/` o que colidia por caminho.
 
@@ -108,7 +108,7 @@ Use sempre o `.venv` deste diretório explicitamente (`.venv/bin/python -m uvico
 
 ### Iniciar frontend
 ```bash
-cd /var/www/html/Noxis2
+cd /var/www/html/IndexadorADB-Vue-dev
 npm run dev
 ```
 
