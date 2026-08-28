@@ -81,34 +81,42 @@
             </span>
           </button>
 
-          <!-- Aberto: só o que difere entre as cópias, que é o que decide -->
+          <!-- Aberto: as copias lado a lado, com previa — o hash garante que o
+               conteudo e igual, mas quem vai apagar precisa ver o que e -->
           <div v-if="group.expanded" class="dup-detail">
-            <div class="dup-common" v-if="group.commonPath">
-              <span class="dup-common-lbl">Pasta em comum</span>
-              <code class="dup-common-path">{{ group.commonPath }}/</code>
+            <div class="dup-context">
+              <span class="dup-identical">
+                <span class="dup-identical-ico" v-html="ICONS.check"></span>
+                Conteúdo idêntico — mesmo hash SHA-256
+              </span>
+              <span v-if="group.commonPath" class="dup-common">
+                em <code class="dup-common-path">{{ group.commonPath }}/</code>
+              </span>
             </div>
 
-            <table class="dup-table">
-              <thead>
-                <tr>
-                  <th>Onde difere</th>
-                  <th class="col-date">Data</th>
-                  <th class="col-act">Ação</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="f in group.files" :key="f.id">
-                  <td>
-                    <code class="dup-diff">{{ f.diffPath }}</code>
-                  </td>
-                  <td class="col-date">{{ formatDate(f.date) }}</td>
-                  <td class="col-act">
-                    <button class="dup-keep" :disabled="busy" @click="keepThis(group, f)">Manter só esta</button>
-                    <button class="dup-rm" :disabled="busy" @click="removeThis(f)">Remover</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <div class="dup-compare">
+              <div v-for="(f, i) in group.files" :key="f.id" class="dup-copy">
+                <button class="dup-copy-prev" :style="{ background: typeGrad(f.type) }"
+                        :title="`Abrir ${f.name}`" @click="openPreview(f)">
+                  <img v-if="f.thumbnail" :src="f.thumbnail" alt="" class="dup-copy-img" loading="lazy">
+                  <span v-else class="dup-copy-ico" v-html="typeIcon(f.type)"></span>
+                  <span class="dup-copy-zoom" v-html="ICONS.search"></span>
+                </button>
+
+                <div class="dup-copy-body">
+                  <div class="dup-copy-tag">Cópia {{ i + 1 }}</div>
+                  <div class="dup-copy-path" :title="f.rel_path">
+                    <span v-if="group.commonPath" class="dup-copy-dim">…/</span><span class="dup-copy-diff">{{ f.diffPath }}</span>
+                  </div>
+                  <div class="dup-copy-meta">{{ formatDate(f.date) }} · {{ f.size }}</div>
+                </div>
+
+                <div class="dup-copy-acts">
+                  <button class="dup-keep" :disabled="busy" @click="keepThis(group, f)">Manter só esta</button>
+                  <button class="dup-rm" :disabled="busy" @click="removeThis(f)">Remover</button>
+                </div>
+              </div>
+            </div>
 
             <div class="dup-bulk">
               <button class="dup-act" :disabled="busy" @click="keepShortest(group)">
@@ -129,6 +137,8 @@
       </p>
     </template>
   </div>
+
+  <FileLightbox :file="previewFile" @close="previewFile = null" @download="downloadFile" />
 </template>
 
 <script setup>
@@ -137,6 +147,7 @@ import { useAssetsStore, mapItem } from '@/stores/assets'
 import { useToastStore } from '@/stores/toast'
 import { useFileType } from '@/composables/useFileType'
 import SkeletonGrid from '@/components/ui/SkeletonGrid.vue'
+import FileLightbox from '@/components/gallery/FileLightbox.vue'
 import api from '@/api/client'
 import { ICONS } from '@/lib/icons'
 
@@ -146,6 +157,7 @@ const busy = ref(false)
 const loading = ref(false)
 const rawGroups = ref([])
 const expandedOverrides = ref({})
+const previewFile = ref(null)
 const sortBy = ref('space')
 const minSizeMb = ref(0)
 
@@ -291,6 +303,15 @@ function removeThis(file) {
   trashMany([file.id], 'Arquivo movido para a lixeira.')
 }
 
+function openPreview(f) { previewFile.value = f }
+
+function downloadFile(f) {
+  const a = document.createElement('a')
+  a.href = f.download_link
+  a.download = f.name
+  a.click()
+}
+
 function rescan() { loadDuplicates() }
 </script>
 
@@ -352,22 +373,49 @@ function rescan() { loadDuplicates() }
 .dup-gain-val { font-size: 14px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; font-family: Montserrat, system-ui, sans-serif; }
 .dup-gain-lbl { font-size: 10.5px; color: var(--faint); }
 
-/* Detalhe */
+/* Detalhe: comparacao lado a lado */
 .dup-detail { border-top: 1px solid var(--border-sub); padding: 14px; background: var(--elevated); }
-.dup-common { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
-.dup-common-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--faint); }
-.dup-common-path { font-size: 12px; color: var(--muted); word-break: break-all; }
 
-.dup-table { width: 100%; border-collapse: collapse; }
-.dup-table th {
-  text-align: left; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
-  color: var(--faint); padding: 6px 8px; border-bottom: 1px solid var(--border);
+.dup-context { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; font-size: 12px; }
+.dup-identical { display: inline-flex; align-items: center; gap: 5px; color: #16a34a; font-weight: 600; }
+.dup-identical-ico :deep(svg) { width: 13px; height: 13px; }
+.dup-common { color: var(--faint); min-width: 0; }
+.dup-common-path { font-size: 11.5px; color: var(--muted); word-break: break-all; }
+
+.dup-compare {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
 }
-.dup-table td { padding: 8px; border-bottom: 1px solid var(--border-sub); vertical-align: middle; }
-.dup-table tr:last-child td { border-bottom: none; }
-.dup-diff { font-size: 12.5px; color: var(--text); word-break: break-all; }
-.col-date { white-space: nowrap; font-size: 12px; color: var(--muted); width: 1%; }
-.col-act { white-space: nowrap; width: 1%; text-align: right; }
+.dup-copy {
+  display: flex; flex-direction: column;
+  background: var(--card); border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden;
+}
+.dup-copy-prev {
+  position: relative; aspect-ratio: 4/3; width: 100%; border: none; padding: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.dup-copy-img { width: 100%; height: 100%; object-fit: cover; }
+.dup-copy-ico { width: 34%; height: 34%; color: rgba(255,255,255,.85); }
+.dup-copy-ico :deep(svg) { width: 100%; height: 100%; }
+.dup-copy-zoom {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.45); color: #fff; opacity: 0; transition: opacity .15s;
+}
+.dup-copy-zoom :deep(svg) { width: 26px; height: 26px; }
+.dup-copy-prev:hover .dup-copy-zoom, .dup-copy-prev:focus-visible .dup-copy-zoom { opacity: 1; }
+
+.dup-copy-body { padding: 9px 11px; display: flex; flex-direction: column; gap: 3px; flex: 1; }
+.dup-copy-tag {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--faint);
+}
+.dup-copy-path { font-size: 12px; line-height: 1.4; word-break: break-all; }
+.dup-copy-dim { color: var(--faint); }
+.dup-copy-diff { color: var(--heading); font-weight: 600; }
+.dup-copy-meta { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+.dup-copy-acts { display: flex; gap: 6px; padding: 0 11px 11px; }
+.dup-copy-acts .dup-keep, .dup-copy-acts .dup-rm { margin-left: 0; flex: 1; text-align: center; }
 
 .dup-keep, .dup-rm {
   font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 7px;
@@ -403,6 +451,6 @@ function rescan() { loadDuplicates() }
 
 @media (max-width: 720px) {
   .dup-gain { display: none; }
-  .col-date { display: none; }
+  .dup-compare { grid-template-columns: 1fr; }
 }
 </style>
