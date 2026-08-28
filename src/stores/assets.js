@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import api from '@/api/client'
+import { extsForType } from '@/composables/useFileType'
 
 export const EXT_TO_TYPE = {
   jpg:'img', jpeg:'img', png:'img', gif:'img', webp:'img',
@@ -91,13 +92,9 @@ export const useAssetsStore = defineStore('assets', () => {
 
   const visibleItems = computed(() => items.value.filter(f => !(f.id in trash.value) && !hiddenIds.value.has(f.id)))
 
-  const filtered = computed(() => {
-    let list = visibleItems.value
-    if (currentFilter.value !== 'todos') {
-      list = list.filter(f => f.type === currentFilter.value)
-    }
-    return applyCampaignDateFilter(list)
-  })
+  // tipo/campanha/data ja vem filtrados do backend (ver fetchAssets); aqui so
+  // resta esconder lixeira/ocultos, que sao estado local do navegador.
+  const filtered = computed(() => visibleItems.value)
 
   // Campanhas derivadas ao vivo dos arquivos + campanhas vazias criadas manualmente (campaignMeta)
   const campaignsList = computed(() => {
@@ -132,8 +129,20 @@ export const useAssetsStore = defineStore('assets', () => {
     }
     error.value = null
     try {
+      // Os filtros vao pro backend de proposito: a galeria e paginada, entao
+      // filtrar no cliente so alcancaria os 50 itens da pagina atual — era por
+      // isso que filtrar por 2023 na pagina 1 (so 2026) dizia "nenhum arquivo".
       const { data } = await api.get('/api/search', {
-        params: { query: query || '', page, page_size: 50, order: 'recent' },
+        params: {
+          query: query || '',
+          page,
+          page_size: 50,
+          order: 'recent',
+          exts: extsForType(currentFilter.value),
+          campaign: campaignFilter.value || '',
+          date_from: dateFromFilter.value || '',
+          date_to: dateToFilter.value || '',
+        },
         signal: controller.signal,
       })
       const mapped = (data.results || []).map(r => mapItem(r, starredIds.value))
@@ -155,6 +164,14 @@ export const useAssetsStore = defineStore('assets', () => {
       }
     }
   }
+
+  // Como os filtros agora sao resolvidos no backend, mudar um deles exige nova
+  // busca — antes o `filtered` recomputava sozinho no cliente. Volta pra pagina
+  // 1: ficar na pagina 500 de um filtro que rende 3 paginas nao faz sentido.
+  watch(
+    [currentFilter, campaignFilter, dateFromFilter, dateToFilter],
+    () => { fetchAssets({ query: searchQuery.value, page: 1, reset: true }) }
+  )
 
   async function loadMore() {
     if (!hasMore.value || loadingMore.value) return

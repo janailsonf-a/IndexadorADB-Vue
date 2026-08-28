@@ -52,3 +52,14 @@ export const STATUS_CONFIG = {
   rascunho:  { label: 'Rascunho',    cls: 'pill-draft',dot: '#6b7280' },
   arquivado: { label: 'Arquivado',   cls: 'pill-arch', dot: '#374151' },
 }
+
+// Inverso do EXT_MAP: categoria -> extensoes. O filtro de tipo e aplicado no
+// backend (a galeria e paginada, filtrar no cliente so alcancaria a pagina
+// atual), e o backend nao tem esse mapa — entao mandamos as extensoes prontas.
+export function extsForType(type) {
+  if (!type || type === 'todos') return ''
+  return Object.entries(EXT_MAP)
+    .filter(([, cat]) => cat === type)
+    .map(([ext]) => ext)
+    .join(',')
+}
