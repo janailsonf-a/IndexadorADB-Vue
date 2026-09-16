@@ -147,7 +147,14 @@ function onEnter() {
   if (query.value.trim()) {
     saveRecent(query.value.trim())
     searchFocused.value = false
-    if (route.path !== '/busca') router.push({ path: '/busca', query: { q: query.value } })
+    // Sempre empurra o novo termo — inclusive já estando em /busca. Antes o
+    // guard `route.path !== '/busca'` fazia a 2ª busca (buscar, apagar, digitar
+    // outra coisa, Enter) não fazer nada: já em /busca, não re-navegava e o
+    // ?q não mudava, então o SearchView não re-buscava. Só evita re-empurrar
+    // termo idêntico (NavigationDuplicated).
+    if (route.path !== '/busca' || route.query.q !== query.value) {
+      router.push({ path: '/busca', query: { q: query.value } })
+    }
   }
 }
 
