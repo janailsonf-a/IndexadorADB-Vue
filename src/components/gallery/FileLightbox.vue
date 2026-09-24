@@ -442,12 +442,15 @@ watch(() => props.file, (f) => {
 .lbox-x:hover { background: rgba(240,68,56,.18) !important; border-color: rgba(240,68,56,.35) !important; color: #F04438 !important; }
 
 .lbox-viewer {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  padding: 80px 60px; position: relative;
+  flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;
+  padding: 72px 60px 16px; position: relative;
 }
-.lbox-file { border-radius: 12px; overflow: hidden; max-width: 80vw; max-height: 70vh; display: flex; align-items: center; justify-content: center; box-shadow: 0 24px 80px rgba(0,0,0,.5); }
-.lbox-img { max-width: 80vw; max-height: 70vh; object-fit: contain; border-radius: 12px; display: block; }
-.lbox-video { max-width: 80vw; max-height: 70vh; border-radius: 12px; }
+/* max-height: 100% (do viewer flex, não 70vh do viewport) — assim a imagem
+   encolhe pra caber no espaço que sobra e o painel de detalhes nunca é
+   empurrado pra fora da tela. */
+.lbox-file { border-radius: 12px; overflow: hidden; max-width: 80vw; max-height: 100%; display: flex; align-items: center; justify-content: center; box-shadow: 0 24px 80px rgba(0,0,0,.5); }
+.lbox-img { max-width: 80vw; max-height: 100%; object-fit: contain; border-radius: 12px; display: block; }
+.lbox-video { max-width: 80vw; max-height: 100%; border-radius: 12px; }
 .lbox-icon-view { width: 320px; height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; border-radius: 12px; }
 .lbox-type-ico { width: 96px; height: 96px; color: rgba(255,255,255,.85); }
 .lbox-type-ico :deep(svg) { width: 100%; height: 100%; }
@@ -480,6 +483,14 @@ watch(() => props.file, (f) => {
 .lbox-bot-edit { grid-template-columns: 1fr; max-height: 280px; }
 /* auditoria aberta e alta; sem isso ela fica espremida na faixa de 220px */
 .lbox-bot-audit { max-height: 46vh; }
+/* Mobile: painel em 1 coluna + mais altura, senão os detalhes ficam ilegíveis
+   espremidos em 3 colunas numa tela estreita. */
+@media (max-width: 640px) {
+  .lbox-viewer { padding: 60px 12px 12px; }
+  .lbox-bot { grid-template-columns: 1fr; gap: 14px; max-height: 42vh; padding: 14px 16px; }
+  .lbox-acts .lbox-btn { padding: 0 9px; font-size: 11px; }
+  .lbox-path { max-width: 60vw; }
+}
 .lbox-sec h4 { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #55556a; margin-bottom: 10px; }
 .lbox-row { display: flex; justify-content: space-between; align-items: flex-start; font-size: 12px; margin-bottom: 5px; color: #eeeef5; gap: 8px; }
 .lbox-row span:first-child { color: #8888a8; flex-shrink: 0; }
