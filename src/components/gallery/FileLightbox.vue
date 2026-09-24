@@ -2,6 +2,7 @@
   <Teleport to="body">
     <Transition name="lbox">
       <div v-if="file" class="lbox" @keydown.esc="$emit('close')" tabindex="-1" ref="lboxEl">
+       <div class="lbox-main">
         <!-- Top bar -->
         <div class="lbox-top">
           <div class="lbox-inf">
@@ -20,6 +21,10 @@
             <button v-if="auth.isEditor" class="lbox-btn" :class="{ active: editing }" @click="toggleEdit">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               {{ editing ? 'Cancelar' : 'Editar' }}
+            </button>
+            <button class="lbox-btn" :class="{ active: showInfo }" @click="showInfo = !showInfo" title="Informações (i)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              Informações
             </button>
             <button class="lbox-btn lbox-x" @click="$emit('close')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -64,7 +69,16 @@
           </button>
         </div>
 
-        <!-- Bottom panel -->
+       </div><!-- /.lbox-main -->
+
+       <!-- Painel lateral de informações (estilo Google Fotos) -->
+       <aside v-if="showInfo" class="lbox-side">
+        <div class="lbox-side-hd">
+          <span>Informações</span>
+          <button class="lbox-side-x" @click="showInfo = false" title="Fechar painel">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
         <div class="lbox-bot" :class="{ 'lbox-bot-edit': editing, 'lbox-bot-audit': showAudit }">
           <template v-if="!editing">
             <div class="lbox-sec">
@@ -220,6 +234,7 @@
             </div>
           </template>
         </div>
+       </aside>
       </div>
     </Transition>
   </Teleport>
@@ -246,6 +261,9 @@ const metaLoaded = ref(null)
 const audit = ref(null)
 const auditLoading = ref(false)
 const showAudit = ref(false)
+// Painel lateral de detalhes (estilo Google Fotos). Aberto por padrão; o botão
+// ⓘ na barra alterna. Fecha automaticamente em tela estreita p/ não cobrir a foto.
+const showInfo = ref(typeof window === 'undefined' || window.innerWidth > 640)
 const form = ref({ title: '', campaign: '', description: '', tags: [], is_official: false })
 const tagInput = ref('')
 const tagSuggestions = ref([])
@@ -419,8 +437,12 @@ watch(() => props.file, (f) => {
 <style scoped>
 .lbox {
   position: fixed; inset: 0; background: rgba(0,0,0,.95);
-  z-index: 200; display: flex; flex-direction: column;
+  z-index: 200; display: flex; flex-direction: row;
   backdrop-filter: blur(10px); outline: none;
+}
+.lbox-main {
+  flex: 1; min-width: 0; position: relative;
+  display: flex; flex-direction: column;
 }
 .lbox-top {
   position: absolute; top: 0; left: 0; right: 0; z-index: 201;
@@ -475,10 +497,25 @@ watch(() => props.file, (f) => {
 .prev { left: 16px; }
 .next { right: 16px; }
 
+.lbox-side {
+  width: 360px; flex: none; height: 100%;
+  display: flex; flex-direction: column;
+  background: #111118; border-left: 1px solid #2e2e3e;
+}
+.lbox-side-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid #24242e; flex: none;
+  font-size: 15px; font-weight: 600; color: #fff;
+}
+.lbox-side-x {
+  width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+  border: none; background: none; color: rgba(255,255,255,.6); cursor: pointer; border-radius: 6px;
+}
+.lbox-side-x:hover { background: rgba(255,255,255,.08); color: #fff; }
+.lbox-side-x svg { width: 18px; height: 18px; }
 .lbox-bot {
-  background: #111118; border-top: 1px solid #2e2e3e;
-  padding: 18px 24px; display: grid; grid-template-columns: 1fr 1fr 1fr;
-  gap: 24px; flex-shrink: 0; max-height: 220px; overflow-y: auto;
+  flex: 1; overflow-y: auto; padding: 16px 20px;
+  display: flex; flex-direction: column; gap: 22px;
 }
 .lbox-bot-edit { grid-template-columns: 1fr; max-height: 280px; }
 /* auditoria aberta e alta; sem isso ela fica espremida na faixa de 220px */
@@ -486,10 +523,11 @@ watch(() => props.file, (f) => {
 /* Mobile: painel em 1 coluna + mais altura, senão os detalhes ficam ilegíveis
    espremidos em 3 colunas numa tela estreita. */
 @media (max-width: 640px) {
+  /* Painel de info cobre a tela toda no celular (não cabe 360px de lado). */
+  .lbox-side { position: absolute; inset: 0; width: 100%; z-index: 210; border-left: none; }
   .lbox-viewer { padding: 60px 12px 12px; }
-  .lbox-bot { grid-template-columns: 1fr; gap: 14px; max-height: 42vh; padding: 14px 16px; }
   .lbox-acts .lbox-btn { padding: 0 9px; font-size: 11px; }
-  .lbox-path { max-width: 60vw; }
+  .lbox-acts .lbox-btn svg { margin: 0; }
 }
 .lbox-sec h4 { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #55556a; margin-bottom: 10px; }
 .lbox-row { display: flex; justify-content: space-between; align-items: flex-start; font-size: 12px; margin-bottom: 5px; color: #eeeef5; gap: 8px; }
@@ -508,7 +546,7 @@ watch(() => props.file, (f) => {
   grid-column: 1 / -1; margin-top: 4px;
   border-top: 1px solid rgba(255,255,255,.12); padding-top: 10px;
 }
-.lbox-audit-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; align-items: start; }
+.lbox-audit-cols { display: grid; grid-template-columns: 1fr; gap: 18px; align-items: start; }
 
 .lbox-audit-grp {
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
@@ -521,7 +559,7 @@ watch(() => props.file, (f) => {
   background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3);
   color: #fbbf24; font-size: 11.5px; line-height: 1.45;
 }
-.lbox-path { font-family: monospace; font-size: 11px; color: #8888a8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; }
+.lbox-path { font-family: monospace; font-size: 11px; color: #8888a8; overflow-wrap: anywhere; word-break: break-all; max-width: 100%; text-align: right; }
 /* caminho e hash tem que aparecer inteiros — e o motivo da auditoria existir */
 .lbox-path.lbox-wrap { white-space: normal; overflow: visible; overflow-wrap: anywhere; max-width: 100%; text-align: right; }
 .tag-list { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -530,7 +568,7 @@ watch(() => props.file, (f) => {
 .tag-rm:hover { opacity: 1; }
 
 /* Edit mode */
-.lbox-edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.lbox-edit-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
 .edit-field { display: flex; flex-direction: column; gap: 4px; }
 .edit-field label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #55556a; }
 .span2 { grid-column: span 2; }
