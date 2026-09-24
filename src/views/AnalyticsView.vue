@@ -80,13 +80,13 @@
 
     <!-- Bottom row -->
     <div class="charts-row">
-      <!-- Distribuição por tipo — donut (amostra do acervo carregado) -->
+      <!-- Distribuição por tipo — donut (acervo inteiro, GET /api/analytics/distribution) -->
       <div class="chart-card">
         <div class="chart-hd">
           <h3 class="chart-title">Distribuição por tipo</h3>
-          <span class="chart-sub">amostra de {{ assets.items.length }} arquivo(s) carregado(s)</span>
+          <span class="chart-sub">{{ distribution.total.toLocaleString('pt-BR') }} arquivos no acervo</span>
         </div>
-        <div v-if="!typeSegs.length" class="chart-empty">Nenhum arquivo carregado ainda.</div>
+        <div v-if="!typeSegs.length" class="chart-empty">Sem dados de distribuição.</div>
         <template v-else>
           <div class="donut-wrap">
             <svg viewBox="0 0 120 120" class="donut-svg">
@@ -99,7 +99,7 @@
               />
             </svg>
             <div class="donut-center">
-              <div class="donut-total">{{ assets.items.length }}</div>
+              <div class="donut-total">{{ distribution.total.toLocaleString('pt-BR') }}</div>
               <div class="donut-sub">arquivos</div>
             </div>
           </div>
@@ -113,11 +113,11 @@
         </template>
       </div>
 
-      <!-- Top campanhas (amostra do acervo carregado) -->
+      <!-- Top campanhas (acervo inteiro, GET /api/analytics/distribution) -->
       <div class="chart-card">
         <div class="chart-hd">
           <h3 class="chart-title">Top Campanhas</h3>
-          <span class="chart-sub">amostra carregada</span>
+          <span class="chart-sub">acervo inteiro</span>
         </div>
         <div v-if="!topCampaigns.length" class="chart-empty">Nenhuma campanha na amostra atual.</div>
         <div v-else class="rank-list">
@@ -160,11 +160,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useAssetsStore } from '@/stores/assets'
 import { useToastStore } from '@/stores/toast'
+import { getFileType } from '@/composables/useFileType'
 import api from '@/api/client'
 
-const assets = useAssetsStore()
 const toast = useToastStore()
 
 const period = ref('30')
@@ -174,6 +173,9 @@ const users = ref([])
 const tagsCount = ref(0)
 const activities = ref([])
 const history = ref({ dates: [], values: [] })
+// Distribuição REAL do acervo inteiro (GET /api/analytics/distribution),
+// em vez de agregar só os itens carregados no cliente.
+const distribution = ref({ by_ext: {}, top_campaigns: [], total: 0 })
 
 const ICONS = {
   files: `<svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>`,
@@ -261,19 +263,17 @@ const TYPE_META = {
   unk: { label: 'Outros', color: '#6B7280' },
 }
 const typeSegs = computed(() => {
+  // Dobra a contagem por extensão (acervo inteiro) nas categorias do TYPE_META.
   const counts = {}
-  assets.items.forEach(f => { counts[f.type] = (counts[f.type] || 0) + 1 })
+  Object.entries(distribution.value.by_ext || {}).forEach(([ext, n]) => {
+    const cat = getFileType(`x.${ext}`)
+    counts[cat] = (counts[cat] || 0) + n
+  })
   return donutFromCounts(counts, TYPE_META)
 })
 
-const topCampaigns = computed(() => {
-  const map = {}
-  assets.items.forEach(f => { if (f.campaign) map[f.campaign] = (map[f.campaign] || 0) + 1 })
-  return Object.entries(map)
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5)
-})
+// Top campanhas do acervo inteiro (agregado no backend).
+const topCampaigns = computed(() => distribution.value.top_campaigns || [])
 
 const historyPoints = computed(() =>
   (history.value.dates || []).map((d, i) => ({ date: d, tb: history.value.values[i] }))
@@ -287,13 +287,14 @@ function formatShortDate(d) {
 
 async function loadAnalytics() {
   try {
-    const [searchRes, statusRes, usersRes, tagsRes, activitiesRes, historyRes] = await Promise.all([
+    const [searchRes, statusRes, usersRes, tagsRes, activitiesRes, historyRes, distRes] = await Promise.all([
       api.get('/api/search', { params: { query: '', page: 1, page_size: 5 } }),
       api.get('/api/full-status'),
       api.get('/api/users'),
       api.get('/api/files/tags/suggestions', { params: { limit: 200 } }),
       api.get('/api/activities', { params: { limit: 1000 } }),
       api.get('/api/history'),
+      api.get('/api/analytics/distribution', { params: { campaign_limit: 5 } }),
     ])
     totalIndexed.value = searchRes.data.meta?.total_indexed || 0
     status.value = statusRes.data
@@ -301,13 +302,13 @@ async function loadAnalytics() {
     tagsCount.value = (tagsRes.data.tags || []).length
     activities.value = Array.isArray(activitiesRes.data) ? activitiesRes.data : (activitiesRes.data.activities || [])
     history.value = historyRes.data || { dates: [], values: [] }
+    distribution.value = distRes.data || { by_ext: {}, top_campaigns: [], total: 0 }
   } catch {
     toast.error('Erro ao carregar analytics.')
   }
 }
 
 onMounted(() => {
-  if (!assets.items.length) assets.fetchAssets({ reset: true })
   loadAnalytics()
 })
 </script>

@@ -4,6 +4,15 @@
       <h2 class="page-title">Configurações</h2>
     </div>
 
+    <div class="settings-banner" role="note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex:none"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span>
+        Estas configurações são salvas <strong>apenas neste navegador</strong> — ainda não há
+        backend que as aplique no servidor. A única com efeito real é <strong>Retenção da lixeira</strong>
+        (exibição). As demais são preferências locais.
+      </span>
+    </div>
+
     <div class="settings-layout">
       <!-- Tabs sidebar -->
       <nav class="settings-nav">
@@ -205,6 +214,9 @@ function save() {
 .view-content { flex: 1; overflow-y: auto; padding: 24px; }
 .page-hd { margin-bottom: 20px; }
 .page-title { font-family: Montserrat, system-ui, sans-serif; font-size: 22px; font-weight: 800; color: var(--heading); margin: 0; }
+
+.settings-banner { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 18px; padding: 12px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; color: var(--heading); background: rgba(245,158,11,.10); border: 1px solid rgba(245,158,11,.35); }
+.settings-banner svg { color: #f59e0b; margin-top: 1px; }
 
 .settings-layout { display: flex; gap: 20px; align-items: flex-start; }
 

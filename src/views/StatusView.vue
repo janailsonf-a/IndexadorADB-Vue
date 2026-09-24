@@ -105,8 +105,15 @@ const gauges = computed(() => {
   if (!status.value) return []
   const { metrics, disk } = status.value
   const overall = status.value.overall_status || (metrics ? 'ok' : 'unknown')
+  // Índice de saúde REAL = 100 - pior recurso (CPU/RAM/Disco). Antes era
+  // hardcoded (ok?100:60), não refletia nada. Cor segue overall_status do back.
+  const cpu = metrics?.cpu || 0
+  const ram = metrics?.ram || 0
+  const dsk = disk?.usage_percent || 0
+  const health = Math.max(0, Math.round(100 - Math.max(cpu, ram, dsk)))
+  const sysColor = overall === 'critical' ? '#ef4444' : overall === 'ok' ? '#10b981' : '#f59e0b'
   return [
-    { label: 'Sistema',  pct: overall === 'ok' ? 100 : 60,  color: overall === 'ok' ? '#10b981' : '#f59e0b', display: overall === 'ok' ? '● Online' : '● Atenção' },
+    { label: 'Sistema',  pct: health,  color: sysColor, display: `${health}%` },
     { label: 'CPU',      pct: metrics?.cpu || 0,              color: (metrics?.cpu || 0) > 85 ? '#ef4444' : '#f59e0b',  display: `${Math.round(metrics?.cpu || 0)}%` },
     { label: 'RAM',      pct: metrics?.ram || 0,              color: (metrics?.ram || 0) > 85 ? '#ef4444' : 'var(--accent)',  display: `${Math.round(metrics?.ram || 0)}%` },
     { label: 'Disco',    pct: disk?.usage_percent || 0,       color: (disk?.usage_percent || 0) > 90 ? '#ef4444' : '#10b981', display: `${Math.round(disk?.usage_percent || 0)}%` },
@@ -176,8 +183,9 @@ onUnmounted(() => clearInterval(ticker))
 .pg-hd h1 { font-family: Montserrat, system-ui, sans-serif; font-size: 22px; font-weight: 800; color: var(--heading); letter-spacing: -.5px; margin: 0 0 4px; }
 .pg-hd p { font-size: 12px; color: var(--muted); margin: 0; }
 
-.st-top { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 14px; }
-.gauge-c { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,.06); }
+.st-top { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 14px; justify-items: center; }
+.gauge-c { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,.06); display: flex; flex-direction: column; align-items: center; }
+.gauge-c svg { display: block; margin: 0 auto; }
 .g-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--faint); margin-bottom: 12px; }
 .g-num { font-size: 20px; font-weight: 700; margin-top: 8px; font-variant-numeric: tabular-nums; font-family: Montserrat, system-ui, sans-serif; }
 

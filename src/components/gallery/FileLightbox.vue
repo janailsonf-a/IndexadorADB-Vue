@@ -53,7 +53,8 @@
             <div v-else class="lbox-icon-view" :style="{ background: ft.bg }">
               <span class="lbox-type-ico" v-html="ft.icon"></span>
               <div class="lbox-open-hint">
-                <a v-if="file.preview_link" :href="file.preview_link" target="_blank" class="btn-primary" style="text-decoration:none">Abrir arquivo</a>
+                <a v-if="file.preview_link && canOpenInline" :href="file.preview_link" target="_blank" class="btn-primary" style="text-decoration:none">Abrir arquivo</a>
+                <span v-else class="lbox-no-preview">Sem pré-visualização para este tipo</span>
                 <button class="btn-primary" style="margin-left:8px" @click="$emit('download', file)">Download</button>
               </div>
             </div>
@@ -87,7 +88,15 @@
                   <span v-if="audit.origem.somente_leitura" class="lbox-ro">somente leitura</span>
                 </span>
               </div>
-              <div class="lbox-row" v-if="file.rel_path"><span>Caminho</span><span class="lbox-path">{{ file.rel_path }}</span></div>
+              <div class="lbox-row" v-if="file.full_path || file.rel_path">
+                <span>Caminho</span>
+                <span class="lbox-path-cell">
+                  <span class="lbox-path">{{ file.full_path || file.rel_path }}</span>
+                  <button class="lbox-copy-path" :class="{ active: pathCopied }" @click="copyPath" title="Copiar caminho">
+                    {{ pathCopied ? 'Copiado!' : 'Copiar' }}
+                  </button>
+                </span>
+              </div>
 
               <button class="lbox-audit-toggle" @click="showAudit = !showAudit">
                 {{ showAudit ? 'Ocultar auditoria técnica' : 'Ver auditoria técnica' }}
@@ -244,6 +253,20 @@ const allTags = ref([])
 
 const ft = computed(() => props.file ? useFileType(props.file.type || getFileType(props.file.name)) : {})
 
+// Extensões que o backend permite abrir inline (/files?disposition=inline).
+// Espelha SAFE_INLINE_EXTENSIONS de app/core/constants.py. Fora dela o backend
+// devolve 403 JSON — por isso o "Abrir arquivo" (preview_link) só aparece p/
+// tipos abríveis; o resto usa Download.
+const INLINE_OK_EXTS = new Set([
+  'txt', 'log', 'json', 'csv', 'py', 'js', 'html', 'css', 'md', 'xml', 'yml', 'yaml',
+  'jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'bmp', 'avif', 'pdf', 'mp4', 'webm',
+])
+const canOpenInline = computed(() => {
+  const name = props.file?.name || ''
+  const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : ''
+  return INLINE_OK_EXTS.has(ext)
+})
+
 function fmtDateTime(d) {
   if (!d) return '—'
   const dt = new Date(d)
@@ -257,17 +280,59 @@ function fmtDate(d) {
   return isNaN(dt.getTime()) ? '' : dt.toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' })
 }
 
+// Copia texto com fallback p/ contexto NÃO-seguro (prod http na LAN, onde
+// navigator.clipboard é undefined). Sem isso o "copiar" falha calado.
+async function copyText(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch {
+    // cai no fallback
+  }
+  try {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.style.position = 'fixed'
+    ta.style.top = '-1000px'
+    ta.style.opacity = '0'
+    document.body.appendChild(ta)
+    ta.focus()
+    ta.select()
+    const ok = document.execCommand('copy')
+    document.body.removeChild(ta)
+    return ok
+  } catch {
+    return false
+  }
+}
+
 async function copyLink() {
   const path = props.file?.preview_link || props.file?.download_link
   if (!path) return
   const url = path.startsWith('http') ? path : `${window.location.origin}${path}`
-  try {
-    await navigator.clipboard.writeText(url)
+  if (await copyText(url)) {
     linkCopied.value = true
     toastStore.success('Link copiado.')
     setTimeout(() => { linkCopied.value = false }, 2000)
-  } catch {
+  } else {
     toastStore.error('Não foi possível copiar o link.')
+  }
+}
+
+const pathCopied = ref(false)
+async function copyPath() {
+  // Caminho real do arquivo: full_path (UNC quando o PathConverter estiver
+  // configurado no backend) → rel_path como fallback.
+  const value = props.file?.full_path || props.file?.rel_path || ''
+  if (!value) return
+  if (await copyText(value)) {
+    pathCopied.value = true
+    toastStore.success('Caminho copiado.')
+    setTimeout(() => { pathCopied.value = false }, 2000)
+  } else {
+    toastStore.error('Não foi possível copiar o caminho.')
   }
 }
 
@@ -386,7 +451,12 @@ watch(() => props.file, (f) => {
 .lbox-icon-view { width: 320px; height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; border-radius: 12px; }
 .lbox-type-ico { width: 96px; height: 96px; color: rgba(255,255,255,.85); }
 .lbox-type-ico :deep(svg) { width: 100%; height: 100%; }
-.lbox-open-hint { display: flex; gap: 8px; }
+.lbox-open-hint { display: flex; gap: 8px; align-items: center; }
+.lbox-no-preview { font-size: 13px; color: var(--faint, #9aa0aa); }
+.lbox-path-cell { display: inline-flex; align-items: center; gap: 8px; min-width: 0; justify-content: flex-end; flex-wrap: wrap; }
+.lbox-copy-path { flex: none; font-size: 11px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--border, rgba(255,255,255,.15)); background: transparent; color: var(--muted, #c7ccd4); cursor: pointer; }
+.lbox-copy-path:hover { background: rgba(255,255,255,.08); }
+.lbox-copy-path.active { color: var(--ok, #22c55e); border-color: var(--ok, #22c55e); }
 .lbox-pdf { width: 80vw; height: 78vh; border: none; border-radius: 12px; background: #fff; box-shadow: 0 24px 80px rgba(0,0,0,.5); }
 .lbox-audio { width: 280px; }
 
