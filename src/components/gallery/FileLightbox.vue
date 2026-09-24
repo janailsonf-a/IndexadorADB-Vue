@@ -22,9 +22,8 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               {{ editing ? 'Cancelar' : 'Editar' }}
             </button>
-            <button class="lbox-btn" :class="{ active: showInfo }" @click="showInfo = !showInfo" title="Informações (i)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              Informações
+            <button class="lbox-btn lbox-info" :class="{ active: showInfo }" @click="showInfo = !showInfo" title="Informações">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="7.5" r="0.6" fill="currentColor" stroke="none"/></svg>
             </button>
             <button class="lbox-btn lbox-x" @click="$emit('close')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -462,6 +461,8 @@ watch(() => props.file, (f) => {
 .lbox-btn:hover { background: rgba(255,255,255,.12); color: #fff; }
 .lbox-btn.active { background: rgba(255,107,0,.18); border-color: rgba(255,107,0,.4); color: var(--accent); }
 .lbox-x:hover { background: rgba(240,68,56,.18) !important; border-color: rgba(240,68,56,.35) !important; color: #F04438 !important; }
+.lbox-info { width: 34px; padding: 0; justify-content: center; }
+.lbox-info svg { width: 18px; height: 18px; }
 
 .lbox-viewer {
   flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;
@@ -470,19 +471,20 @@ watch(() => props.file, (f) => {
 /* max-height: 100% (do viewer flex, não 70vh do viewport) — assim a imagem
    encolhe pra caber no espaço que sobra e o painel de detalhes nunca é
    empurrado pra fora da tela. */
-.lbox-file { border-radius: 12px; overflow: hidden; max-width: 80vw; max-height: 100%; display: flex; align-items: center; justify-content: center; box-shadow: 0 24px 80px rgba(0,0,0,.5); }
-.lbox-img { max-width: 80vw; max-height: 100%; object-fit: contain; border-radius: 12px; display: block; }
-.lbox-video { max-width: 80vw; max-height: 100%; border-radius: 12px; }
+.lbox-file { border-radius: 12px; overflow: hidden; max-width: 100%; max-height: 100%; display: flex; align-items: center; justify-content: center; box-shadow: 0 24px 80px rgba(0,0,0,.5); }
+.lbox-img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px; display: block; }
+.lbox-video { max-width: 100%; max-height: 100%; border-radius: 12px; }
 .lbox-icon-view { width: 320px; height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; border-radius: 12px; }
 .lbox-type-ico { width: 96px; height: 96px; color: rgba(255,255,255,.85); }
 .lbox-type-ico :deep(svg) { width: 100%; height: 100%; }
-.lbox-open-hint { display: flex; gap: 8px; align-items: center; }
-.lbox-no-preview { font-size: 13px; color: var(--faint, #9aa0aa); }
+.lbox-open-hint { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.lbox-open-hint .btn-primary { margin: 0 !important; }
+.lbox-no-preview { font-size: 13px; color: rgba(255,255,255,.6); text-align: center; max-width: 220px; }
 .lbox-path-cell { display: inline-flex; align-items: center; gap: 8px; min-width: 0; justify-content: flex-end; flex-wrap: wrap; }
 .lbox-copy-path { flex: none; font-size: 11px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--border, rgba(255,255,255,.15)); background: transparent; color: var(--muted, #c7ccd4); cursor: pointer; }
 .lbox-copy-path:hover { background: rgba(255,255,255,.08); }
 .lbox-copy-path.active { color: var(--ok, #22c55e); border-color: var(--ok, #22c55e); }
-.lbox-pdf { width: 80vw; height: 78vh; border: none; border-radius: 12px; background: #fff; box-shadow: 0 24px 80px rgba(0,0,0,.5); }
+.lbox-pdf { width: 100%; height: 82vh; max-height: 100%; border: none; border-radius: 12px; background: #fff; box-shadow: 0 24px 80px rgba(0,0,0,.5); }
 .lbox-audio { width: 280px; }
 
 .lbox-nav {
