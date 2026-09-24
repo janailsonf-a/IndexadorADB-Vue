@@ -519,9 +519,11 @@ watch(() => props.file, (f) => {
   flex: 1; overflow-y: auto; padding: 16px 20px;
   display: flex; flex-direction: column; gap: 22px;
 }
-.lbox-bot-edit { grid-template-columns: 1fr; max-height: 280px; }
-/* auditoria aberta e alta; sem isso ela fica espremida na faixa de 220px */
-.lbox-bot-audit { max-height: 46vh; }
+/* No painel lateral o próprio .lbox-bot rola (flex:1 + overflow). Estas classes
+   são resquício do painel antigo embaixo — zerar o max-height, senão a
+   auditoria/edição fica cortada com um vão vazio embaixo. */
+.lbox-bot-edit { max-height: none; }
+.lbox-bot-audit { max-height: none; }
 /* Mobile: painel em 1 coluna + mais altura, senão os detalhes ficam ilegíveis
    espremidos em 3 colunas numa tela estreita. */
 @media (max-width: 640px) {
