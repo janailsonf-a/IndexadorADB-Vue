@@ -241,7 +241,7 @@ onMounted(() => {
           >
             <div class="min-w-0">
               <div class="mb-3 flex items-center gap-2 text-sm text-[var(--app-text-subtle)]">
-                <span>Noxis</span>
+                <span>Indexador ADB</span>
                 <span>/</span>
                 <span class="font-medium text-[var(--app-text-soft)]">Usuários</span>
               </div>

@@ -97,6 +97,10 @@ const meta = ref({
 })
 
 let debounceTimer = null
+// Guarda de corrida: buscas concorrentes podem voltar fora de ordem e uma
+// resposta velha sobrescrever a nova. Cada fetch pega um seq; só aplica se
+// ainda for o mais recente.
+let searchSeq = 0
 
 const displayedFiles = computed(() => {
   if (activeQuickFilter.value === 'recent_clicks') {
@@ -291,6 +295,7 @@ function metadataEntries(file) {
 }
 
 async function fetchSearch() {
+  const seq = ++searchSeq
   loading.value = true
   error.value = ''
 
@@ -304,6 +309,9 @@ async function fetchSearch() {
         ext: selectedExt.value,
       },
     })
+
+    // Resposta obsoleta (outra busca disparou depois): descarta.
+    if (seq !== searchSeq) return
 
     const data = response.data ?? {}
 
@@ -324,13 +332,15 @@ async function fetchSearch() {
       showEditModal.value = false
     }
   } catch (err) {
+    if (seq !== searchSeq) return
     error.value = 'Não foi possível carregar os resultados da busca.'
     files.value = []
     selectedId.value = null
     showDetailsModal.value = false
     showEditModal.value = false
   } finally {
-    loading.value = false
+    // Só a busca mais recente controla o spinner.
+    if (seq === searchSeq) loading.value = false
   }
 }
 
@@ -512,17 +522,49 @@ async function saveMetadata() {
   }
 }
 
-async function copyPath(file = selectedFile.value) {
-  if (!file?.fullPath) return
-
+async function copyToClipboard(text) {
+  // Contexto seguro (https/localhost): API moderna.
   try {
-    await navigator.clipboard.writeText(file.fullPath)
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch {
+    // cai no fallback abaixo
+  }
+  // Fallback p/ contexto NÃO-seguro (prod http na LAN, onde navigator.clipboard
+  // é undefined): textarea + execCommand('copy').
+  try {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.style.position = 'fixed'
+    ta.style.top = '-1000px'
+    ta.style.opacity = '0'
+    document.body.appendChild(ta)
+    ta.focus()
+    ta.select()
+    const ok = document.execCommand('copy')
+    document.body.removeChild(ta)
+    return ok
+  } catch {
+    return false
+  }
+}
+
+async function copyPath(file = selectedFile.value) {
+  // rawFullPath = caminho real do backend (UNC quando o PathConverter estiver
+  // configurado); fullPath é só o token de exibição normalizado. Copiar o real.
+  const value = file?.rawFullPath || file?.fullPath || file?.rawPath || ''
+  if (!value) return
+
+  const ok = await copyToClipboard(value)
+  if (ok) {
     copied.value = true
     setTimeout(() => {
       copied.value = false
     }, 1800)
-  } catch (err) {
-    console.error('Erro ao copiar caminho:', err)
+  } else {
+    console.error('Erro ao copiar caminho')
   }
 }
 
@@ -611,6 +653,10 @@ watch(order, () => {
 watch(query, () => {
   page.value = 1
   clearTimeout(debounceTimer)
+  // Vazio = navegar tudo (permitido). 1 caractere = ruído: não dispara sozinho
+  // (o Enter/botão ainda força via submitSearch). >=2 caracteres = busca normal.
+  const q = (query.value || '').trim()
+  if (q.length === 1) return
   debounceTimer = setTimeout(() => {
     fetchSearch()
   }, 450)
@@ -625,7 +671,7 @@ watch(query, () => {
           <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <div class="mb-2 flex items-center gap-2 text-sm text-[var(--app-text-subtle)]">
-                <span>Noxis</span>
+                <span>Indexador ADB</span>
                 <ChevronRight class="h-4 w-4" />
                 <span class="font-medium text-[var(--app-text-soft)]">Arquivos</span>
               </div>
@@ -1301,7 +1347,7 @@ watch(query, () => {
                           </div>
                           <p
                             class="break-all text-sm leading-6 text-[var(--app-text-muted)]"
-                            v-html="highlightText(selectedFile.fullPath, query)"
+                            v-html="highlightText(selectedFile.rawFullPath || selectedFile.fullPath, query)"
                           ></p>
                         </div>
 
@@ -1494,7 +1540,7 @@ watch(query, () => {
                           v-model="metadataForm.tagsText"
                           type="text"
                           class="w-full rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-3)] px-4 py-3 text-sm text-[var(--app-text)] outline-none transition focus:border-[color:color-mix(in_srgb,var(--app-primary)_40%,transparent)]"
-                          placeholder="Ex: noxis, campanha, banner"
+                          placeholder="Ex: relatorio, campanha, banner"
                         />
                         <p class="mt-2 text-xs text-[var(--app-text-subtle)]">
                           Separe as tags por vírgula.

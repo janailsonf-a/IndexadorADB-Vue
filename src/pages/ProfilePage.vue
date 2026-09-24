@@ -188,7 +188,7 @@ onMounted(() => {
             class="rounded-[28px] border border-[var(--app-border)] bg-[var(--app-surface)] px-6 py-5 shadow-[var(--app-shadow)]"
           >
             <div class="mb-3 flex items-center gap-2 text-sm text-[var(--app-text-subtle)]">
-              <span>Noxis</span>
+              <span>Indexador ADB</span>
               <span>/</span>
               <span class="font-medium text-[var(--app-text-soft)]">Perfil</span>
             </div>
